@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+'use strict'
+
+const yargs = require('yargs')
+const spawn = require('child_process').spawn
+
+yargs
+	.option('dump', {
+		type: 'string',
+		require: true,
+		desc: 'JSON dump from pywallet'
+	})
+	.option('user', {
+		type: 'string',
+		require: true,
+		desc: 'Username and password for the RPC as user:password. If not password is set, use just --user username'
+	})
+	.option('url', {
+		type: 'string',
+		require: true,
+		desc: 'HTTP endpoint for the RPC, including http:// and port'
+	})
+	.option('verbose', {
+		type: 'boolean',
+		desc: 'Display the command being executed'
+	})
+	.command({
+		command: '*',
+		describe: 'Import pywallet --dump .json wallet file',
+		handler: (args) => {
+			const keys = require(args.dump).keys || []
+
+			if (keys.length === 0) {
+				return console.error('No keys found in the file')
+			}
+			let id = 0
+
+			const callWithPrivKey = (lastPromise, count) => {
+				var privKey = keys.shift()
+
+				if (!privKey) {
+					return Promise.resolve(count)
+				}
+
+				return new Promise((resolve, reject) => {
+					const currentIndex = id++
+
+					const importSuccess = (data) => {
+						if (args.verbose) {
+							console.log(`Response for index ${currentIndex}:`, data);
+						}
+
+						if (data.indexOf('"result":null') !== -1 && data.indexOf('"error":null') !== -1) {
+							count++
+						}
+
+						resolve(callWithPrivKey(lastPromise, count));
+					}
+
+					const cmds = [
+						'--user', args.user,
+						'-f',
+						'-s',
+						'--connect-timeout', 3,
+						'--data-binary', JSON.stringify({
+							"jsonrpc": "1.0",
+							"id": `${currentIndex}`,
+							"method": "importprivkey",
+							"params": [privKey.sec, `Index: ${currentIndex}`, false]
+						}),
+						'-H', 'content-type: text/plain;',
+						args.url
+					]
+
+					if (args.verbose) {
+						console.log(`Executing index ${currentIndex}: curl ` + cmds.join(' '))
+					}
+
+					const spawned = spawn('curl', cmds, {
+						cwd: process.cwd(),
+					})
+
+					spawned.stdout.on('data', (data) => {
+						importSuccess(data.toString())
+					})
+
+					spawned.stderr.on('data', (data) => {
+						importSuccess(data)
+					})
+
+					spawned.on('exit', (code) => {
+						if (code !== 0) {
+							if (args.verbose) {
+								console.log('Failed command: curl ' + cmds.join(' '))
+							}
+							reject(new Error(`curl code ${code} on index ${currentIndex} for address ${privKey.addr}`))
+						}
+					})
+
+				})
+			}
+
+			callWithPrivKey(Promise.resolve(), 0).then((all) => {
+				console.log('All done! Imported ' + all + ' keys')
+			}, console.error.bind(console))
+
+		}
+	})
+	.showHelpOnFail(true)
+	.argv

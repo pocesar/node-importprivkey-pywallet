@@ -1,0 +1,39 @@
+{
+  "name": "importprivkey-pywallet",
+  "version": "1.0.0",
+  "description": "Simple script that calls curl in sequence to import pywallet dumpwallet json to Bitcoin (and forks) clients ",
+  "bin": {
+    "importprivkey-pywallet": "./importprivkey-pywallet"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pocesar/node-importprivkey-pywallet.git"
+  },
+  "keywords": [
+    "pywallet",
+    "import",
+    "private",
+    "key",
+    "recover",
+    "bitcoin",
+    "bitcoin-cli",
+    "rpc",
+    "curl",
+    "importprivkey"
+  ],
+  "author": "Paulo Cesar <https://github.com/pocesar/>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pocesar/node-importprivkey-pywallet/issues"
+  },
+  "homepage": "https://github.com/pocesar/node-importprivkey-pywallet#readme",
+  "dependencies": {
+    "yargs": "^10.1.1"
+  }
+}
